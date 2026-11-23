@@ -52,6 +52,12 @@ git -C "${REPO_ROOT}" archive HEAD | tar -x -C "${SRC_B}"
 
 LDFLAGS="-s -w -buildid= -X github.com/sorotrail/sorobeacon/internal/buildinfo.Version=${VERSION} -X github.com/sorotrail/sorobeacon/internal/buildinfo.Commit=${COMMIT} -X github.com/sorotrail/sorobeacon/internal/buildinfo.Date=${DATE}"
 TF_LDFLAGS="-s -w -buildid="
+HOST_GOMODCACHE="${GOMODCACHE:-$(go env GOMODCACHE)}"
+
+# Ensure dependencies are downloaded into the host module cache so isolated builds
+# don't depend on network reliability or fail from proxy timeouts during verification.
+( cd "${REPO_ROOT}" && go mod download )
+( cd "${REPO_ROOT}/terraform-provider-sorobeacon" && go mod download )
 
 build_in_env() {
   local label="$1"
@@ -75,6 +81,7 @@ build_in_env() {
       LC_ALL=C \
       TMPDIR="${home_dir}/tmp" \
       GOCACHE="${home_dir}/gocache" \
+      GOMODCACHE="${HOST_GOMODCACHE}" \
       CGO_ENABLED=0 \
       GOOS="${GOOS:-linux}" \
       GOARCH="${GOARCH:-amd64}" \
@@ -90,6 +97,7 @@ build_in_env() {
       LC_ALL=C \
       TMPDIR="${home_dir}/tmp" \
       GOCACHE="${home_dir}/gocache" \
+      GOMODCACHE="${HOST_GOMODCACHE}" \
       CGO_ENABLED=0 \
       GOOS="${GOOS:-linux}" \
       GOARCH="${GOARCH:-amd64}" \
